@@ -4,7 +4,8 @@ Assets/DynamicBone/
 Assets/QHierarchy/
 Assets/Universal Sound Fx/
 Assets/Plugins/
-
+Assets/UnityChan
+Assets/CVVTuberExample
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
@@ -65,3 +66,4 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+*.meta
