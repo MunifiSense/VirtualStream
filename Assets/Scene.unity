@@ -10236,6 +10236,7 @@ MonoBehaviour:
   chosenWebcam: Logitech QuickCam Pro 9000
   caffePrototxt: deploy.prototxt
   caffeModel: res10_300x300_ssd_iter_140000.caffemodel
+  dlibModel: sp_human_face_68.dat
   minConfidence: 0.5
   image: {fileID: 1080001536}
 --- !u!1 &925319850
