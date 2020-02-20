@@ -1,6 +1,7 @@
 ﻿/*
  *  Head tracking following this tutorial: https://www.pyimagesearch.com/2018/02/26/face-detection-with-opencv-and-deep-learning/
  *  Facial landmark tracking following this tutorial: https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
+ *  Head pose estimation reference: https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
 */
 using System.Collections;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using OpenCVForUnity.ImgprocModule;
 using UnityEngine.UI;
 using DlibFaceLandmarkDetector;
 using Rect = UnityEngine.Rect;
+using OpenCVForUnity.Calib3dModule;
 
 public class OpenCVTracking : MonoBehaviour
 {
@@ -21,12 +23,17 @@ public class OpenCVTracking : MonoBehaviour
     public string dlibModel = "sp_human_face_68.dat";
     public float minConfidence = 0.5f;
     public RawImage image;
-    WebCamTexture webcamTexture;
-    Mat webcamMat;
-    Net net;
-    Color32[] colors;
-    FaceLandmarkDetector faceDetector;
-    bool isPlaying = false;
+    private WebCamTexture webcamTexture;
+    private Mat webcamMat;
+    private Net net;
+    private Color32[] colors;
+    private FaceLandmarkDetector faceDetector;
+    private bool isPlaying = false;
+    private MatOfPoint3f model_points;
+    private Mat cameraMatrix;
+    private MatOfDouble distCoeffs;
+    private Mat rotationVector;
+    private Mat translationVector;
     // Start is called before the first frame update
     void Start()
     {
@@ -42,6 +49,23 @@ public class OpenCVTracking : MonoBehaviour
 
         // Load Dlib Model
         faceDetector = new FaceLandmarkDetector(Utils.getFilePath("dlib/" + dlibModel));
+
+        // Head Pose Estimation 3d points from: https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
+        Point3 nose = new Point3(0.0, 0.0, 0.0);                            // Nose (Tip)
+        Point3 chin = new Point3(0.0, -330.0, -65.0);                       // Chin
+        Point3 leftEyeLeftCorner = new Point3(-225.0, 170.0, -135.0);       // Left eye left corner
+        Point3 rightEyeRightCorner = new Point3(225.0, 170.0, -135.0);      // Right eye right corner
+        Point3 mouthLeftCorner = new Point3(-150.0, -150.0, -125.0);        // Mouth left corner
+        Point3 mouthRightCorner = new Point3(150.0, -150.0, -125.0);        // Mouth right corner
+
+        model_points = new MatOfPoint3f(
+            nose, chin, leftEyeLeftCorner, rightEyeRightCorner, mouthLeftCorner, mouthRightCorner
+            );
+
+        // Camera matrix
+        cameraMatrix = new Mat(3, 3, CvType.CV_64FC1);
+
+        distCoeffs = new MatOfDouble(0,0,0,0);
     }
 
     // Update is called once per frame
@@ -55,7 +79,7 @@ public class OpenCVTracking : MonoBehaviour
             Utils.webCamTextureToMat(webcamTexture, webcamMat, colors, false);
             Texture2D texture = new Texture2D(webcamMat.cols(), webcamMat.rows(), TextureFormat.RGBA32, false);
             Utils.fastMatToTexture2D(webcamMat, texture, true);
-            //Core.flip(webcamMat, webcamMat, 0);
+
             // DNN
             // Load image and construct blob
             Mat bgrMat = new Mat(webcamMat.rows(), webcamMat.cols(), CvType.CV_8UC3);
@@ -99,7 +123,7 @@ public class OpenCVTracking : MonoBehaviour
                         faceDetector.SetImage<Color32>(colors, texture.width, texture.height, 4, true);
 
                         // Detect face
-                        faceDetector.DetectLandmark(new Rect(left, top, width, height));
+                        List<Vector2> facePoints = faceDetector.DetectLandmark(new Rect(left, top, width, height));
 
                         Color32[] texColor = texture.GetPixels32();
                         // Draw face
@@ -109,6 +133,65 @@ public class OpenCVTracking : MonoBehaviour
                         texture.Apply(false);
 
                         Utils.fastTexture2DToMat(texture, webcamMat, true);
+
+                        // Detect direction user is facing (Head pose estimation)
+
+                        // Coordinates of some facial points
+                        Point nose = new Point(facePoints[30].x, facePoints[30].y);                 // Nose (Tip)
+                        Point chin = new Point(facePoints[8].x, facePoints[8].y);                   // Chin
+                        Point leftEyeLeftCorner = new Point(facePoints[36].x, facePoints[36].y);    // Left eye left corner
+                        Point rightEyeRightCorner = new Point(facePoints[45].x, facePoints[45].y);  // Right eye right corner
+                        Point mouthLeftCorner = new Point(facePoints[48].x, facePoints[48].y);      // Mouth left corner
+                        Point mouthRightCorner = new Point(facePoints[54].x, facePoints[54].y);     // Mouth right corner
+
+                        // Camera matrix
+                        double fx = webcamTexture.width;
+                        double fy = webcamTexture.width;
+                        double cx = webcamTexture.width / 2.0;
+                        double cy = webcamTexture.height / 2.0;
+                        double[] cameraArray = new double[] { fx, 0, cx, 0, fy, cy, 0, 0, 1.0 };
+                        cameraMatrix.put(0, 0, cameraArray);
+
+                        MatOfPoint2f image_points = new MatOfPoint2f(new Point[] {
+                            nose, chin, leftEyeLeftCorner, rightEyeRightCorner, mouthLeftCorner, mouthRightCorner
+                        });
+
+                        if (rotationVector == null || translationVector == null)
+                        {
+                            rotationVector = new Mat(3, 1, CvType.CV_64FC1);
+                            translationVector = new Mat(3, 1, CvType.CV_64FC1);
+                            Calib3d.solvePnP(model_points, image_points, cameraMatrix, distCoeffs, rotationVector, translationVector);
+                        }
+
+                        //Debug.Log("Rotation Vector: " + rotationVector.dump());
+                        //Debug.Log("Translation Vector: " + translationVector.dump());
+
+                        Calib3d.solvePnP(model_points, image_points, cameraMatrix, distCoeffs, rotationVector, translationVector, true, Calib3d.SOLVEPNP_ITERATIVE);
+
+                        MatOfPoint3f nose_end_point3d = new MatOfPoint3f(new Point3(0, 0, 1000));
+                        MatOfPoint2f nose_end_point2d = new MatOfPoint2f(new Point(0,0));
+                        Calib3d.projectPoints(nose_end_point3d, rotationVector, translationVector, cameraMatrix, distCoeffs, nose_end_point2d);
+
+                        //Debug.Log(nose_end_point2d.dump());
+
+                        Imgproc.line(webcamMat, new Point(image_points.get(0,0)), new Point(nose_end_point2d.get(0,0)), new Scalar(0, 0, 255, 255), 2);
+
+                        Mat rotationMatrix = new Mat();
+                        Calib3d.Rodrigues(rotationVector, rotationMatrix);
+
+                        // OpenGl to Unity coordinates https://stackoverflow.com/questions/36561593/opencv-rotation-rodrigues-and-translation-vectors-for-positioning-3d-object-in
+
+                        Mat up = rotationMatrix.row(1);
+                        Mat forward = rotationMatrix.row(2);
+
+                        double[] u = new double[3];
+                        rotationMatrix.get(1, 0, u);
+                        double[] f = new double[3];
+                        rotationMatrix.get(2, 0, f);
+                        Quaternion rot = Quaternion.LookRotation(new Vector3((float)f[0], (float)f[1], (float)f[2]), new Vector3((float)u[0], (float)-u[1], (float)u[2]));
+
+
+                        GameObject.FindGameObjectWithTag("Head").gameObject.transform.rotation = rot;
                     }
                 }
             }
