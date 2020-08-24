@@ -24,7 +24,22 @@ public class UseButton : MonoBehaviour
         }
         else
         {
-            GetComponent<Button>().interactable = true;
+            if(type == VSAssetManager.AssetType.Prop)
+            {
+                Prop[] props = FindObjectsOfType<Prop>();
+                foreach (Prop prop in props)
+                {
+                    if (prop.name == VSAssetManager.Instance.selected)
+                    {
+                        GetComponent<Button>().interactable = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                GetComponent<Button>().interactable = true;
+            }
         }
     }
 }

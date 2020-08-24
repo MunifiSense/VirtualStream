@@ -60,7 +60,7 @@ public class Settings : Singleton<Settings>
     // Use eye blinking?
     public bool eyeBlinking;
 
-    // Avatar floor height
+    // Avatar floor height; probably put this in the avatar component?
     public double floorHeight;
     public double handHeight;
     public double armSpread;
@@ -105,6 +105,13 @@ public class Settings : Singleton<Settings>
             {
                 //if it doesn't, create it
                 Directory.CreateDirectory(assetPath + "/Props");
+
+            }
+
+            if (!Directory.Exists(assetPath + "/Profiles"))
+            {
+                //if it doesn't, create it
+                Directory.CreateDirectory(assetPath + "/Profiles");
 
             }
             DefaultSettings();
@@ -197,7 +204,9 @@ public class Settings : Singleton<Settings>
         QualitySettings.SetQualityLevel(quality);
         Screen.SetResolution(screenWidth, screenHeight, fullscreen);
         VSAssetManager.Instance.assetPath = assetPath;
-
+        // Load new avatar if not same as current
+        // Load new environment if not same as current
+        // Load props if not in scene
     }
     
     public void DefaultSettings()

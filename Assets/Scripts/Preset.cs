@@ -2,7 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
-
+[System.Serializable]
+public struct PropSettings 
+{
+    public string propName;
+    public SerializableVector3 positionOffset;
+    public SerializableVector3 rotationOffset;
+    public HumanBodyBones boneAttachedTo;
+    public bool attachedToSomething;
+}
+[System.Serializable]
 public class Preset
 {
     private string settingsPath = Application.persistentDataPath;
@@ -10,6 +19,7 @@ public class Preset
     public string avatar;
     public string environment;
     public Prop[] props;
+    //public PropSettings[] propSettings;
     public bool eyeTracking;
     public bool eyeBlinking;
 
@@ -25,20 +35,22 @@ public class Preset
 
     public bool SavePreset()
     {
+        // Get all things in scene and save to preset
+        props = Object.FindObjectsOfType<Prop>();
         dateTime = System.DateTime.Now.ToString();
-        File.WriteAllText(settingsPath + "/Presets/" + presetName + ".preset.vstream", JsonUtility.ToJson(this));
+        File.WriteAllText(settingsPath + "/Profiles/" + presetName + ".profile.vstream", JsonUtility.ToJson(this));
         return true;
     }
 
     public bool LoadPreset(string name)
     {
-        DirectoryInfo dir = new DirectoryInfo(settingsPath + "/Presets");
-        FileInfo[] files = dir.GetFiles("*.preset.vstream");
+        DirectoryInfo dir = new DirectoryInfo(settingsPath + "/Profiles");
+        FileInfo[] files = dir.GetFiles("*.profile.vstream");
         foreach (FileInfo file in files)
         {
-            if(file.Name == name+ ".preset.vstream")
+            if(file.Name == name+ ".profile.vstream")
             {
-                Preset retrieved = JsonUtility.FromJson<Preset>(File.ReadAllText(settingsPath + "/Presets/" + presetName + ".preset.vstream"));
+                Preset retrieved = JsonUtility.FromJson<Preset>(File.ReadAllText(settingsPath + "/Presets/" + presetName + ".profile.vstream"));
                 // If settings file couldn't be loaded!!!
                 if (retrieved == null)
                 {
@@ -49,9 +61,24 @@ public class Preset
                 Settings.Instance.avatar = retrieved.avatar;
                 Settings.Instance.environment = retrieved.environment;
                 Settings.Instance.props = retrieved.props;
+                // To Do: Avatar, environment settings
 
                 VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+
+
                 VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
+
+                // Spawn props and apply their settings
+                foreach (Prop prop in props)
+                {
+                    GameObject loadedObject = VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.name);
+                    Prop propInScene = loadedObject.AddComponent<Prop>();
+                    propInScene.name = prop.name;
+                    propInScene.positionOffset = prop.positionOffset;
+                    propInScene.rotationOffset = prop.rotationOffset;
+                    propInScene.attachedBone = prop.attachedBone;
+                    propInScene.attachedToSomething = prop.attachedToSomething;
+                }
 
                 Settings.Instance.eyeTracking = retrieved.eyeTracking;
                 Settings.Instance.eyeBlinking = retrieved.eyeBlinking;

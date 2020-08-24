@@ -69,14 +69,14 @@ public class VSAssetManager : Singleton<VSAssetManager>
         return false;
     }
 
-    public bool Load(AssetType type, string name)
+    public GameObject Load(AssetType type, string name)
     {
         // Profiles
         if(type == AssetType.Profile)
         {
             Preset newPreset = new Preset();
             newPreset.LoadPreset(name);
-            return true;
+            return null;
         }
 
         // Environments
@@ -86,10 +86,11 @@ public class VSAssetManager : Singleton<VSAssetManager>
             GameObject mainCam = GameObject.FindGameObjectWithTag("MainCamera");
             mainCam.transform.position = new Vector3(0f, 0.7f, -1.5f);
             mainCam.transform.rotation = Quaternion.Euler(0, 0, 0);
-            return true;
+            return null;
         }
         DirectoryInfo dir = new DirectoryInfo(assetPath + "/" + type.ToString() + "s");
         FileInfo[] files = dir.GetFiles("*." + type.ToString().ToLower() + ".vstream");
+        GameObject loadedAsset = null;
         foreach (FileInfo file in files)
         {
             if (file.Name == name + "." + type.ToString().ToLower() + ".vstream")
@@ -162,6 +163,7 @@ public class VSAssetManager : Singleton<VSAssetManager>
                             Tracking.Instance.steamVRObject.transform.RotateAround(Tracking.Instance.steamVRObject.transform.position, Tracking.Instance.steamVRObject.transform.up, 180);
                             newObject.transform.rotation = newObjT.rotation;
                         }
+                        loadedAsset = newObject;
                         break;
                     // Load an environment
                     case AssetType.Environment:
@@ -193,13 +195,90 @@ public class VSAssetManager : Singleton<VSAssetManager>
                         camera.transform.position = newCamera.transform.position;
                         camera.transform.rotation = newCamera.transform.rotation;
                         Destroy(newCamera);
+                        loadedAsset = newObjectE;
                         break;
                     case AssetType.Prop:
+                        GameObject newObjectP = Instantiate(tempObject, tempObject.transform.position, tempObject.transform.rotation);
+                        newObjectP.tag = "Prop";
+                        VS_PropDescriptor.ObjectType propType = newObjectP.GetComponent<VS_PropDescriptor>().type;
+                        Prop prop = newObjectP.AddComponent<Prop>();
+                        GameObject avatarProp = GameObject.FindGameObjectWithTag("Player");
+                        prop.name = objectName;
+                        switch (propType) {
+                            case VS_PropDescriptor.ObjectType.Head:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.Head);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.Head;
+                                break;
+                            case VS_PropDescriptor.ObjectType.Hip:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.Hips);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.Hips;
+                                break;
+                            case VS_PropDescriptor.ObjectType.LeftHand:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.LeftHand);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.LeftHand;
+                                break;
+                            case VS_PropDescriptor.ObjectType.LeftShoulder:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.LeftShoulder);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.LeftShoulder;
+                                break;
+                            case VS_PropDescriptor.ObjectType.Neck:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.Neck);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.Neck;
+                                break;
+                            case VS_PropDescriptor.ObjectType.RightHand:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.RightHand);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.RightHand;
+                                break;
+                            case VS_PropDescriptor.ObjectType.RightShoulder:
+                                newObjectP.transform.parent = avatarProp.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.RightShoulder);
+                                prop.attachedToSomething = true;
+                                prop.attachedBone = HumanBodyBones.RightShoulder;
+                                break;
+                            case VS_PropDescriptor.ObjectType.Other:
+                                // probably nothing
+                                prop.attachedToSomething = false;
+                                break;
+                        }
+                        newObjectP.transform.localPosition = Vector3.zero;
+                        newObjectP.transform.localEulerAngles = Vector3.zero;
+                        prop.scale = newObjectP.transform.localScale;
+                        loadedAsset = newObjectP;
+
                         break;
                 }
-                return true;
+                return loadedAsset;
             }
         }
-        return false;
+        return null;
+    }
+
+    public void UnequipProp(string propName)
+    {
+        Prop[] props = FindObjectsOfType<Prop>();
+        foreach(Prop prop in props)
+        {
+            if(prop.name == propName)
+            {
+                Destroy(prop.gameObject);
+                return;
+            }
+        }
+    }
+
+    public void AdjustProp(Prop prop, HumanBodyBones attachedBone,  bool attachedToSomething, Vector3 position, Vector3 rotation, Vector3 scale)
+    {
+        prop.attachedBone = attachedBone;
+        prop.attachedToSomething = attachedToSomething;
+        prop.positionOffset = position;
+        prop.rotationOffset = rotation;
+        prop.scale = scale;
+
+        prop.UpdateProp();
     }
 }

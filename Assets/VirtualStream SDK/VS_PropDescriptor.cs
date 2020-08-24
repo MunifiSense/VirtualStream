@@ -11,16 +11,19 @@ public class VS_PropDescriptor : MonoBehaviour
 {
 	public enum ObjectType
 	{
-		Hand,
 		Head,
+		Neck,
+		LeftHand,
+		RightHand,
+		LeftShoulder,
+		RightShoulder,
+		Hip,		
 		Other
 	}
 	[Tooltip("Where does this object go?")]
 	public ObjectType type;
-	[Tooltip("Position offset from the bone it will be attached to.")]
-	public Vector3 offset;
-	[Tooltip("Rotation offset from the bone it will be attached to.")]
-	public Vector3 rotationOffset;
+	//[Tooltip("Scale of the prop.")]
+	//public Vector3 scale = Vector3.one;
 
 #if UNITY_EDITOR
 	[ContextMenu("Create VirtualStream Bundle")]
@@ -61,7 +64,7 @@ public class VS_PropDescriptor : MonoBehaviour
 		else
 		{
 			// Failure
-			Debug.Log("Vstream environment creation failed.");
+			Debug.Log("Vstream prop creation failed.");
 			if (File.Exists(assetPath))
 			{
 				FileUtil.DeleteFileOrDirectory(assetPath);
