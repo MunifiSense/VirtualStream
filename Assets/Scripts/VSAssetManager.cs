@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using Leap.Unity;
 
 public class VSAssetManager : Singleton<VSAssetManager>
 {
@@ -142,7 +143,14 @@ public class VSAssetManager : Singleton<VSAssetManager>
                         {
                             hand = Tracking.TrackingType.LeapMotion;
                         }
-
+                        GameObject leapMotionObject = Resources.FindObjectsOfTypeAll<LeapMotionTracking>()[0].gameObject;
+                        leapMotionObject.GetComponent<HandModelManager>().ClearModelGroup();
+                        leapMotionObject.SetActive(true);
+                        LeapHandsAutoRig autoRig = newObject.AddComponent<LeapHandsAutoRig>();
+                        autoRig.AutoRig();
+                        leapMotionObject.SetActive(false);
+                        newObject.SetActive(false);
+                        newObject.SetActive(true);
                         tracking.SetHands(hand);
 
                         // If there's an environment loaded

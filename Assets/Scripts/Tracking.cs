@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Tracking : Singleton<Tracking>
 {
+    [System.Serializable]
     public enum TrackingType {
         None,
         OpenCV,
@@ -16,9 +17,11 @@ public class Tracking : Singleton<Tracking>
     public TrackingType headTracking;
     public TrackingType handTracking;
     public VRIK ik;
+    public GameObject noneObject;
     public GameObject steamVRObject;
     public GameObject openCVObject;
-    public GameObject noneObject;
+    public GameObject tobiiObject;
+    public GameObject leapMotionObject;
     // Start is called before the first frame update
     void Start()
     {
@@ -55,6 +58,8 @@ public class Tracking : Singleton<Tracking>
                 ik.solver.spine.headTarget = steamVRObject.transform.GetChild(2).transform.GetChild(0);
                 break;
             case TrackingType.TobiiEyeTracker:
+                tobiiObject.SetActive(true);
+                ik.solver.spine.headTarget = tobiiObject.transform.GetChild(0);
                 break;
         }
         Settings.Instance.headTracker = type.ToString();
@@ -78,6 +83,9 @@ public class Tracking : Singleton<Tracking>
                 ik.solver.rightArm.target = steamVRObject.transform.GetChild(1).transform.GetChild(0);
                 break;
             case TrackingType.LeapMotion:
+                leapMotionObject.SetActive(true);
+                ik.solver.leftArm.target = leapMotionObject.transform.GetChild(0);
+                ik.solver.rightArm.target = leapMotionObject.transform.GetChild(1);
                 break;
         }
         Settings.Instance.handTracker = type.ToString();
