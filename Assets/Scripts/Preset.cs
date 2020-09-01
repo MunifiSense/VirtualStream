@@ -26,6 +26,8 @@ public class Preset
     /*public string headTracking;
     public string handTracking;*/
 
+    public SerializableVector3 headPosition;
+    public SerializableVector3 headRotation;
     public SerializableVector3 leftHandPosition;
     public SerializableVector3 leftHandRotation;
     public SerializableVector3 rightHandPosition;
@@ -117,6 +119,8 @@ public class Preset
 
                 Tracking.Instance.SetHands(hand);*/
                 //TODO: Set things in scene
+                Settings.Instance.headPosition = retrieved.headPosition;
+                Settings.Instance.headRotation = retrieved.headRotation;
                 Settings.Instance.leftHandPosition = retrieved.leftHandPosition;
                 Settings.Instance.leftHandRotation = retrieved.leftHandRotation;
                 Settings.Instance.rightHandPosition = retrieved.rightHandPosition;

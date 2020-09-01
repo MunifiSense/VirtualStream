@@ -67,6 +67,8 @@ public class Settings : Singleton<Settings>
     public double avatarScale;
 
     // SteamVR Tracking calibrations
+    public SerializableVector3 headPosition;
+    public SerializableVector3 headRotation;
     public SerializableVector3 leftHandPosition;
     public SerializableVector3 leftHandRotation;
     public SerializableVector3 rightHandPosition;
@@ -187,6 +189,8 @@ public class Settings : Singleton<Settings>
         Prop[] props        = retrieved.props;
         eyeTracking         = retrieved.eyeTracking;
         eyeBlinking         = retrieved.eyeBlinking;
+        headPosition        = retrieved.headPosition;
+        headRotation        = retrieved.headRotation;
         leftHandPosition    = retrieved.leftHandPosition;
         leftHandRotation    = retrieved.leftHandRotation;
         rightHandPosition   = retrieved.rightHandPosition;
@@ -204,9 +208,71 @@ public class Settings : Singleton<Settings>
         QualitySettings.SetQualityLevel(quality);
         Screen.SetResolution(screenWidth, screenHeight, fullscreen);
         VSAssetManager.Instance.assetPath = assetPath;
-        // Load new avatar if not same as current
+
+        /*// Load new avatar if not same as current
+        GameObject currentAvatar = GameObject.FindGameObjectWithTag("Player");
+        if (currentAvatar != null)
+        {
+            if (currentAvatar.GetComponent<Environment>().name != environment)
+            {
+                // An avatar is in the scene! Remove old one and load new one
+                Destroy(currentAvatar);
+                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+            }
+        }
+        else
+        {
+            // No avatar somehow?... Load avatar
+            VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+        }
         // Load new environment if not same as current
+        GameObject currentEnvironment = GameObject.FindGameObjectWithTag("Environment");
+        if (currentEnvironment != null)
+        {
+            if(currentEnvironment.GetComponent<Environment>().name != environment)
+            {
+                // An environment exists! Remove old one and load new one
+                Destroy(currentEnvironment);
+                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
+            }
+        }
+        else
+        {
+            // No environment. Load environment!
+            VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
+        }*/
+
+        // Actually VSAssetManager deals with all the checks...
+        VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+        VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
+
         // Load props if not in scene
+        Prop[] sceneProps = FindObjectsOfType<Prop>();
+        if(sceneProps.Length > 0)
+        {
+            foreach (Prop prop in props)
+            {
+                foreach(Prop sceneProp in sceneProps)
+                {
+                    if(prop.name == sceneProp.name)
+                    {
+                        prop.UpdateProp();
+                        break;
+                    }
+                }
+                // Prop isn't in scene! New prop!
+                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.name);
+            }
+        }
+
+        // Set SteamVR Tracking offsets
+        Tracking.Instance.headPositionOffset = headPosition;
+        Tracking.Instance.headRotationOffset = headRotation;
+        Tracking.Instance.leftHandPositionOffset = leftHandPosition;
+        Tracking.Instance.leftHandRotationOffset = leftHandRotation;
+        Tracking.Instance.rightHandPositionOffset = rightHandPosition;
+        Tracking.Instance.rightHandRotationOffset = rightHandRotation;
+        Tracking.Instance.ApplySteamVROffsets();
     }
     
     public void DefaultSettings()
