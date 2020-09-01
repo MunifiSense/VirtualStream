@@ -109,6 +109,7 @@ public class VSAssetManager : Singleton<VSAssetManager>
                         GameObject oldAvatar = GameObject.FindGameObjectWithTag("Player");
                         Destroy(oldAvatar);
                         newObject.tag = "Player";
+                        newObject.AddComponent<Avatar>().name = objectName;
                         newObject.AddComponent<RootMotion.FinalIK.VRIK>();
                         Tracking.TrackingType head = Tracking.TrackingType.None;
                         Tracking.TrackingType hand = Tracking.TrackingType.None;
@@ -178,7 +179,9 @@ public class VSAssetManager : Singleton<VSAssetManager>
                         GameObject newObjectE = Instantiate(tempObject, tempObject.transform.position, tempObject.transform.rotation);
                         GameObject camera = GameObject.FindGameObjectWithTag("MainCamera");
                         GameObject oldEnvironment = GameObject.FindGameObjectWithTag("Environment");
+                        Destroy(oldEnvironment);
                         newObjectE.tag = "Environment";
+                        newObjectE.AddComponent<Environment>().name = objectName;
                         GameObject avatar = GameObject.FindGameObjectWithTag("Player");
                         // Can maybe do this in export script instead
                         newObjectE.GetComponent<VS_EnvironmentDescriptor>().avatarLocation.SetActive(false);
@@ -210,6 +213,7 @@ public class VSAssetManager : Singleton<VSAssetManager>
                         newObjectP.tag = "Prop";
                         VS_PropDescriptor.ObjectType propType = newObjectP.GetComponent<VS_PropDescriptor>().type;
                         Prop prop = newObjectP.AddComponent<Prop>();
+                        prop.name = objectName;
                         GameObject avatarProp = GameObject.FindGameObjectWithTag("Player");
                         prop.name = objectName;
                         switch (propType) {

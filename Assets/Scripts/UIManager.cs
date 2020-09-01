@@ -8,11 +8,14 @@ using TMPro;
 public class UIManager : MonoBehaviour
 {
     public RectTransform windowSelectPanel;
+    public GameObject mainPanel;
+    public GameObject offsetPanel;
     public GameObject avatarPanel;
     public GameObject environmentPanel;
     public GameObject propPanel;
     public GameObject profilePanel;
     public GameObject adjustPropPanel;
+    public GameObject trackingPanel;
 
     public Button importAvatar;
     public Button importEnvironment;
@@ -23,6 +26,11 @@ public class UIManager : MonoBehaviour
     public Button unequipProp;
     public Button adjustProp;
     public Button adjustPropConfirm;
+    public Button calibrate;
+    public Button startOffsetEditor;
+    public Button finishOffsetEditor;
+    public Button cancelOffsetEditor;
+    public Button resetOffsetEditor;
     public TMP_InputField posX;
     public TMP_InputField posY;
     public TMP_InputField posZ;
@@ -34,6 +42,9 @@ public class UIManager : MonoBehaviour
     public TMP_InputField scaleZ;
     public Toggle attachedToSomething;
     public TMP_Dropdown bonesDropdown;
+    public TMP_Dropdown trackersListHead;
+    public TMP_Dropdown trackersListLeftHand;
+    public TMP_Dropdown trackersListRightHand;
 
     public GameObject menuObject;
     public GameObject profileObject;
@@ -44,6 +55,10 @@ public class UIManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        // Update the tracker list whenever there's a new device plugged in
+        Valve.VR.SteamVR_Events.DeviceConnected.AddListener(delegate {
+            UpdateTrackersList();
+        });
         importAvatar.onClick.AddListener(() => {
             VSAssetManager.Instance.Import(VSAssetManager.AssetType.Avatar);
         });
@@ -66,11 +81,45 @@ public class UIManager : MonoBehaviour
         List<string> bonesList = new List<string>();
         foreach (string bone in bones)
         {
-            TMP_Dropdown.OptionData option = new TMP_Dropdown.OptionData();
-            option.text = bone;
             bonesList.Add(bone);
         }
         bonesDropdown.AddOptions(bonesList);
+
+        trackersListHead.onValueChanged.AddListener(delegate {
+            Tracking.Instance.SetSteamVRTracker("head", trackersListHead.value);
+        });
+        trackersListLeftHand.onValueChanged.AddListener(delegate {
+            Tracking.Instance.SetSteamVRTracker("leftHand", trackersListLeftHand.value);
+        });
+        trackersListRightHand.onValueChanged.AddListener(delegate {
+            Tracking.Instance.SetSteamVRTracker("rightHand", trackersListRightHand.value);
+        });
+        calibrate.onClick.AddListener(delegate
+        {
+            Tracking.Instance.CalibrateTracking();
+        });
+        startOffsetEditor.onClick.AddListener(delegate
+        {
+            OpenOffsetPanel();
+
+        });
+        cancelOffsetEditor.onClick.AddListener(delegate
+        {
+            CloseOffsetPanel();
+            Tracking.Instance.ApplySteamVROffsets();
+
+        });
+        finishOffsetEditor.onClick.AddListener(delegate
+        {
+            CloseOffsetPanel();
+            Tracking.Instance.SetOffsets();
+
+        });
+        resetOffsetEditor.onClick.AddListener(delegate
+        {
+            Tracking.Instance.ResetOffsets();
+
+        });
     }
 
     // Update is called once per frame
@@ -294,5 +343,36 @@ public class UIManager : MonoBehaviour
                 return;
             }
         }
+    }
+
+    public void UpdateTrackersList()
+    {
+        Tracking.Instance.UpdateTrackerList();
+        List<Tracking.TrackedObject> trackerList =  Tracking.Instance.GetTrackerList();
+        List<string> trackerOptions = new List<string>();
+        foreach(Tracking.TrackedObject trackedObject in trackerList)
+        {
+            trackerOptions.Add(trackedObject.name);
+        }
+        trackersListHead.ClearOptions();
+        trackersListLeftHand.ClearOptions();
+        trackersListRightHand.ClearOptions();
+        trackersListHead.AddOptions(trackerOptions);
+        trackersListLeftHand.AddOptions(trackerOptions);
+        trackersListRightHand.AddOptions(trackerOptions);
+    }
+
+    public void OpenOffsetPanel()
+    {
+        trackingPanel.SetActive(false);
+        offsetPanel.SetActive(true);
+        Tracking.Instance.EnableGizmoEditingOnTrackers();
+    }
+
+    public void CloseOffsetPanel()
+    {
+        trackingPanel.SetActive(true);
+        offsetPanel.SetActive(false);
+        Tracking.Instance.DisableGizmoEditingOnTrackers();
     }
 }

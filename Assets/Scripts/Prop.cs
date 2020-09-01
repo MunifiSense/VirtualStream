@@ -27,6 +27,7 @@ public class Prop : MonoBehaviour
 
     public void UpdateProp()
     {
+        player = GameObject.FindGameObjectWithTag("Player").GetComponent<Animator>();
         // If the avatar is found, move to the attached bone.
         if (player != null && attachedToSomething)
         {
