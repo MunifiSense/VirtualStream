@@ -28,10 +28,10 @@ public class Settings : Singleton<Settings>
     public int screenHeight;
 
     // Fullscreen?
-    public bool fullscreen;
+    public int windowMode;
 
     // Last used preset
-    public string lastLoadedPreset;
+    //public string lastLoadedPreset;
 
     // Asset storage location
     public string assetPath;
@@ -52,13 +52,22 @@ public class Settings : Singleton<Settings>
     public string environment;
 
     // Current props in scene
-    public Prop[] props;
+    public PropSettings[] props;
 
     // Use eye tracking?
     public bool eyeTracking;
 
     // Use eye blinking?
     public bool eyeBlinking;
+
+    // Use hand tracking?
+    //public bool handTracking;
+
+    // Use head tracking?
+    //public bool headTracking;
+
+    // Webcam
+    public string webcam;
 
     // Avatar floor height; probably put this in the avatar component?
     public double floorHeight;
@@ -74,9 +83,18 @@ public class Settings : Singleton<Settings>
     public SerializableVector3 rightHandPosition;
     public SerializableVector3 rightHandRotation;
 
+    // SteamVR Tracker Index
+    public int SteamVRHeadTracker;
+    public int SteamVRLeftHandTracker;
+    public int SteamVRRightHandTracker;
+
+    // For when hands are detected on the webcam
+    public double webcamHandHeight;
+
     // Start is called before the first frame update
     void Start()
     {
+        QualitySettings.vSyncCount = 0;
         settingsPath = Application.persistentDataPath;
 
         // If settings file exists
@@ -110,35 +128,29 @@ public class Settings : Singleton<Settings>
 
             }
 
-            if (!Directory.Exists(assetPath + "/Profiles"))
+            if (!Directory.Exists(assetPath + "/Presets"))
             {
                 //if it doesn't, create it
-                Directory.CreateDirectory(assetPath + "/Profiles");
+                Directory.CreateDirectory(assetPath + "/Presets");
 
             }
             DefaultSettings();
             SaveSettings();
+            ApplySettings();
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(Screen.fullScreen != fullscreen || screenWidth != Screen.width || screenHeight != Screen.height)
+        if( screenWidth != Screen.width || screenHeight != Screen.height)
         {
-            fullscreen = Screen.fullScreen;
+            //fullscreen = Screen.fullScreen;
             screenWidth = Screen.width;
             screenHeight = Screen.height;
             SaveSettings();
         }
 
-    }
-
-    // Save last used preset for next launch
-    private void OnApplicationQuit()
-    {
-        //TODO: Set last loaded preset
-        SaveSettings();
     }
 
     public bool SaveSettings()
@@ -154,10 +166,10 @@ public class Settings : Singleton<Settings>
 
     public bool LoadSettings()
     {
-        Settings retrieved = null;
+        //Settings retrieved = new Settings();
         try
         {
-            retrieved = JsonUtility.FromJson<Settings>(File.ReadAllText(settingsPath + "/settings.cfg"));
+            JsonUtility.FromJsonOverwrite(File.ReadAllText(settingsPath + "/settings.cfg"), this);
         }
         catch(Exception e)
         {
@@ -165,7 +177,7 @@ public class Settings : Singleton<Settings>
             SaveSettings();
             return false;
         }
-
+        /*
         // If settings file couldn't be loaded!!!
         if (retrieved == null)
         {
@@ -174,14 +186,13 @@ public class Settings : Singleton<Settings>
             SaveSettings();
             return false;
         }
-
         // Settings file loaded
         framerate           = retrieved.framerate;
         quality             = retrieved.quality;
-        screenWidth         = retrieved.quality;
-        screenHeight        = retrieved.quality;
-        fullscreen          = retrieved.fullscreen;
-        lastLoadedPreset    = retrieved.lastLoadedPreset;
+        screenWidth         = retrieved.screenWidth;
+        screenHeight        = retrieved.screenHeight;
+        windowMode          = retrieved.windowMode;
+        //lastLoadedPreset    = retrieved.lastLoadedPreset;
         assetPath           = retrieved.assetPath;
         presetName          = retrieved.presetName;
         avatar              = retrieved.avatar;
@@ -189,6 +200,10 @@ public class Settings : Singleton<Settings>
         Prop[] props        = retrieved.props;
         eyeTracking         = retrieved.eyeTracking;
         eyeBlinking         = retrieved.eyeBlinking;
+        headTracker         = retrieved.headTracker;
+        handTracker         = retrieved.handTracker;
+        handTracking        = retrieved.handTracking;
+        headTracking        = retrieved.headTracking;
         headPosition        = retrieved.headPosition;
         headRotation        = retrieved.headRotation;
         leftHandPosition    = retrieved.leftHandPosition;
@@ -199,6 +214,14 @@ public class Settings : Singleton<Settings>
         handHeight          = retrieved.handHeight;
         armSpread           = retrieved.armSpread;
         avatarScale         = retrieved.avatarScale;
+        quality             = retrieved.quality;
+        screenWidth         = retrieved.screenWidth;
+        screenHeight        = retrieved.screenHeight;
+        windowMode          = retrieved.windowMode;
+        webcam              = retrieved.webcam;
+        framerate           = retrieved.framerate;
+        webcamHandHeight    = retrieved.webcamHandHeight;
+        */
         return true;
     }
 
@@ -206,65 +229,89 @@ public class Settings : Singleton<Settings>
     {
         Application.targetFrameRate = framerate;
         QualitySettings.SetQualityLevel(quality);
-        Screen.SetResolution(screenWidth, screenHeight, fullscreen);
+        Screen.SetResolution(screenWidth, screenHeight, (FullScreenMode)3);
         VSAssetManager.Instance.assetPath = assetPath;
-
-        /*// Load new avatar if not same as current
-        GameObject currentAvatar = GameObject.FindGameObjectWithTag("Player");
-        if (currentAvatar != null)
+        GameObject tempAvatar = VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+        //((OpenCVTracking)(Resources.FindObjectsOfTypeAll(typeof(OpenCVTracking))[0])).SetWebcamDevice(webcam);
+        Tracking.Instance.UpdateTrackerList();
+        if (headTracker == "Webcam")
         {
-            if (currentAvatar.GetComponent<Environment>().name != environment)
-            {
-                // An avatar is in the scene! Remove old one and load new one
-                Destroy(currentAvatar);
-                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
-            }
+            Tracking.Instance.SetHead(Tracking.TrackingType.OpenCV);
+        }
+        else if (headTracker == "SteamVR")
+        {
+            Tracking.Instance.SetHead(Tracking.TrackingType.SteamVR);
+        }
+        else if (headTracker == "Tobii Eye Tracker")
+        {
+            Tracking.Instance.SetHead(Tracking.TrackingType.TobiiEyeTracker);
+        }
+
+        if (handTracker == "SteamVR")
+        {
+            Tracking.Instance.SetHands(Tracking.TrackingType.SteamVR);
+        }
+        else if (handTracker == "Webcam")
+        {
+            Tracking.Instance.SetHands(Tracking.TrackingType.OpenCV);
+        }
+        else if (handTracker == "Leap Motion")
+        {
+            Tracking.Instance.SetHands(Tracking.TrackingType.LeapMotion);
+        }
+
+        if(headTracker == "SteamVR" || handTracker == "SteamVR")
+        {
+            UIManager.Instance.EnableCalibrationPanel();
         }
         else
         {
-            // No avatar somehow?... Load avatar
-            VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
+            UIManager.Instance.DisableCalibrationPanel();
         }
-        // Load new environment if not same as current
-        GameObject currentEnvironment = GameObject.FindGameObjectWithTag("Environment");
-        if (currentEnvironment != null)
-        {
-            if(currentEnvironment.GetComponent<Environment>().name != environment)
-            {
-                // An environment exists! Remove old one and load new one
-                Destroy(currentEnvironment);
-                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
-            }
-        }
-        else
-        {
-            // No environment. Load environment!
-            VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
-        }*/
 
-        // Actually VSAssetManager deals with all the checks...
-        VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
         VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
 
         // Load props if not in scene
         Prop[] sceneProps = FindObjectsOfType<Prop>();
+        bool propFound = false;
         if(sceneProps.Length > 0)
         {
-            foreach (Prop prop in props)
+            foreach (PropSettings prop in props)
             {
-                foreach(Prop sceneProp in sceneProps)
+                propFound = false;
+                foreach (Prop sceneProp in sceneProps)
                 {
-                    if(prop.name == sceneProp.name)
+                    if(prop.propName == sceneProp.name)
                     {
-                        prop.UpdateProp();
+                        propFound = true;
+                        VSAssetManager.Instance.AdjustProp(sceneProp, prop.boneAttachedTo, prop.attachedToSomething, prop.positionOffset, prop.rotationOffset, prop.scale);
                         break;
                     }
                 }
                 // Prop isn't in scene! New prop!
-                VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.name);
+                if (!propFound)
+                {
+                    VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.propName);
+                }
             }
         }
-
+        else
+        {
+            foreach (PropSettings prop in props)
+            {
+                Prop propInScene = VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.propName).GetComponent<Prop>();
+                propInScene.scale = prop.scale;
+                propInScene.positionOffset = prop.positionOffset;
+                propInScene.rotationOffset = prop.rotationOffset;
+                propInScene.attachedBone = prop.boneAttachedTo;
+                propInScene.attachedToSomething = prop.attachedToSomething;
+                propInScene.UpdateProp();
+            }
+        }
+        // Set SteamVR devices
+        Tracking.Instance.SetSteamVRTrackerVRIndex("head", SteamVRHeadTracker);
+        Tracking.Instance.SetSteamVRTrackerVRIndex("leftHand", SteamVRLeftHandTracker);
+        Tracking.Instance.SetSteamVRTrackerVRIndex("rightHand", SteamVRRightHandTracker);
         // Set SteamVR Tracking offsets
         Tracking.Instance.headPositionOffset = headPosition;
         Tracking.Instance.headRotationOffset = headRotation;
@@ -273,44 +320,77 @@ public class Settings : Singleton<Settings>
         Tracking.Instance.rightHandPositionOffset = rightHandPosition;
         Tracking.Instance.rightHandRotationOffset = rightHandRotation;
         Tracking.Instance.ApplySteamVROffsets();
+
+        // Resolution and stuff
+        Screen.SetResolution(screenWidth, screenHeight, (FullScreenMode)windowMode, framerate);
+        QualitySettings.SetQualityLevel(quality);
+
+        UIManager.Instance.webcamButton.SetActive(headTracker == "Webcam" || handTracker == "Webcam");
+
+        Tracking.Instance.SetLegHeight(floorHeight);
+        Tracking.Instance.SetHandHeight(handHeight);
+        Tracking.Instance.SetArmSpread(armSpread);
+        tempAvatar.transform.localScale = new Vector3((float)avatarScale, (float)avatarScale, (float)avatarScale);
     }
     
     public void DefaultSettings()
     {
         // Create a new settings file
-        framerate = Application.targetFrameRate;
-        quality = QualitySettings.GetQualityLevel();
+        framerate = 60;
+        quality = 2;
         screenWidth = Screen.currentResolution.width;
         screenHeight = Screen.currentResolution.height;
-        fullscreen = Screen.fullScreen;
-        lastLoadedPreset = "";
+        windowMode = (int)FullScreenMode.Windowed;
+        //lastLoadedPreset = "";
         assetPath = Application.persistentDataPath;
         VSAssetManager.Instance.assetPath = assetPath;
         presetName = "";
         RestoreDefaultAvatar();
         RestoreDefaultEnvironment();
         RestoreDefaultProp();
-        avatar = "Sample-Yell";
+        avatar = "sample-yell";
         VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
         environment = "";
         Prop[] props = new Prop[0];
         handTracker = "None";
         headTracker = "None";
-        eyeTracking = true;
-        eyeBlinking = true;
+        eyeTracking = false;
+        eyeBlinking = false;
+        //headTracking = true;
+        //handTracking = true;
         leftHandPosition = Vector3.zero;
         leftHandRotation = Vector3.zero;
         rightHandPosition = Vector3.zero;
         rightHandRotation = Vector3.zero;
-        floorHeight = 0.5;
-        handHeight = 0.0;
-        armSpread = 2.0;
+        floorHeight = 0.0;
+        handHeight = 0.788;
+        armSpread = 0.3;
         avatarScale = 1.0;
+        screenWidth = 1280;
+        screenHeight = 720;
+        windowMode = 3;
+        webcam = "None";
+        webcamHandHeight = 0.888;
+    }
+
+    public void SaveProps()
+    {
+        GameObject[] sceneProps = GameObject.FindGameObjectsWithTag("Prop");
+        props = new PropSettings[sceneProps.Length];
+        for (int i = 0; i < sceneProps.Length; i++)
+        {
+            props[i].propName = sceneProps[i].GetComponent<Prop>().name;
+            props[i].scale = sceneProps[i].GetComponent<Prop>().scale;
+            props[i].positionOffset = sceneProps[i].GetComponent<Prop>().positionOffset;
+            props[i].rotationOffset = sceneProps[i].GetComponent<Prop>().rotationOffset;
+            props[i].boneAttachedTo = sceneProps[i].GetComponent<Prop>().attachedBone;
+            props[i].attachedToSomething = sceneProps[i].GetComponent<Prop>().attachedToSomething;
+        }
     }
 
     public void RestoreDefaultAvatar()
     {
-        File.Copy(Application.streamingAssetsPath + "/avatar/Sample-Yell.avatar.vstream", assetPath + "/Avatars/Sample-Yell.avatar.vstream", true);
+        File.Copy(Application.streamingAssetsPath + "/avatar/sample-yell.avatar.vstream", assetPath + "/Avatars/sample-yell.avatar.vstream", true);
     }
 
     public void RestoreDefaultEnvironment()
@@ -322,4 +402,5 @@ public class Settings : Singleton<Settings>
     {
         File.Copy(Application.streamingAssetsPath + "/prop/sample-hat.prop.vstream", assetPath + "/Props/sample-hat.prop.vstream", true);
     }
+
 }

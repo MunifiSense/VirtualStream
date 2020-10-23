@@ -11,8 +11,8 @@ public class VS_EnvironmentDescriptor : MonoBehaviour
 {
 	[Tooltip("Where the avatar should be in the environment. make sure the Z-axis (blue arrow) is facing the camera")]
 	public GameObject avatarLocation;
-	[Tooltip("A camera pointing at where the avatar should be.")]
-	public Camera camera;
+	//[Tooltip("A camera pointing at where the avatar should be.")]
+	//public Camera camera;
 
 #if UNITY_EDITOR
 	[ContextMenu("Create VirtualStream Bundle")]
@@ -78,7 +78,7 @@ public class VS_EnvironmentDescriptor : MonoBehaviour
 			Debug.Log("There is no avatar location!");
 			return false;
 		}
-		if (camera == null)
+		/*if (camera == null)
 		{
 			EditorUtility.DisplayDialog("Error!", "There is no camera object specified!" +
 				" Add a game object with a Camera component, position it to face where the avatar would be, and make sure it is a child" +
@@ -92,7 +92,7 @@ public class VS_EnvironmentDescriptor : MonoBehaviour
 			EditorUtility.DisplayDialog("Error!", "Camera object is not a child of the game object with the descriptor! " +
 				"Make sure the camera object is under " + gameObject.name + " in the hierachy.", "Okay");
 			return false;
-		}
+		}*/
 
 		return true;
 	}

@@ -1,6 +1,7 @@
 Assets/DlibFaceLandmarkDetector/
 Assets/OpenCVForUnity/
 Assets/DynamicBone/
+Assets/Pavo Studio/
 Assets/Oculus/
 Assets/QHierarchy/
 Assets/Universal Sound Fx/
@@ -11,6 +12,8 @@ Assets/UnityChan
 Assets/CVVTuberExample
 Assets/SteamVR/
 Assets/WanzyeeStudio/
+VirtualStream/
+VirtualStream Installer/
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
