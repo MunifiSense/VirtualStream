@@ -6,6 +6,11 @@ public class DetectMouse : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 {
     public bool mouseIsOver = false;
 
+    public void OnEnable()
+    {
+        mouseIsOver = false;
+    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
         mouseIsOver = true;

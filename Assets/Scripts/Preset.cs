@@ -1,11 +1,20 @@
-﻿using System.Collections;
+﻿/*
+ *  This is the preset script.
+ *  It is used for saving preset data.
+ *  Basically everything except tracking settings.
+ */
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Linq;
+
 [System.Serializable]
 public struct PropSettings 
 {
     public string propName;
+    public SerializableVector3 scale;
     public SerializableVector3 positionOffset;
     public SerializableVector3 rotationOffset;
     public HumanBodyBones boneAttachedTo;
@@ -18,10 +27,8 @@ public class Preset
     public string presetName;
     public string avatar;
     public string environment;
-    public Prop[] props;
-    //public PropSettings[] propSettings;
-    public bool eyeTracking;
-    public bool eyeBlinking;
+    //public Prop[] props;
+    public PropSettings[] propSettings;
 
     /*public string headTracking;
     public string handTracking;*/
@@ -38,94 +45,68 @@ public class Preset
     public bool SavePreset()
     {
         // Get all things in scene and save to preset
-        props = Object.FindObjectsOfType<Prop>();
+        Prop[] props = Object.FindObjectsOfType<Prop>();
+        propSettings = new PropSettings[props.Length];
+        for(int i = 0; i < props.Length; i++)
+        {
+            propSettings[i].propName = props[i].name;
+            propSettings[i].scale = props[i].scale;
+            propSettings[i].positionOffset = props[i].positionOffset;
+            propSettings[i].rotationOffset = props[i].rotationOffset;
+            propSettings[i].boneAttachedTo = props[i].attachedBone;
+            propSettings[i].attachedToSomething = props[i].attachedToSomething;
+        }
         dateTime = System.DateTime.Now.ToString();
-        File.WriteAllText(settingsPath + "/Profiles/" + presetName + ".profile.vstream", JsonUtility.ToJson(this));
+        File.WriteAllText(settingsPath + "/Presets/" + presetName + ".preset.vstream", JsonUtility.ToJson(this));
         return true;
     }
 
     public bool LoadPreset(string name)
     {
-        DirectoryInfo dir = new DirectoryInfo(settingsPath + "/Profiles");
-        FileInfo[] files = dir.GetFiles("*.profile.vstream");
+        DirectoryInfo dir = new DirectoryInfo(settingsPath + "/Presets");
+        FileInfo[] files = dir.GetFiles("*.preset.vstream");
         foreach (FileInfo file in files)
         {
-            if(file.Name == name+ ".profile.vstream")
+            if(file.Name == name + ".preset.vstream")
             {
-                Preset retrieved = JsonUtility.FromJson<Preset>(File.ReadAllText(settingsPath + "/Presets/" + presetName + ".profile.vstream"));
+                JsonUtility.FromJsonOverwrite(File.ReadAllText(settingsPath + "/Presets/" + name + ".preset.vstream"), this);
                 // If settings file couldn't be loaded!!!
-                if (retrieved == null)
+                /*if (retrieved == null)
                 {
                     return false;
-                }
+                }*/
 
-                Settings.Instance.presetName = retrieved.presetName;
-                Settings.Instance.avatar = retrieved.avatar;
-                Settings.Instance.environment = retrieved.environment;
-                Settings.Instance.props = retrieved.props;
+                Settings.Instance.presetName = presetName;
+                Settings.Instance.avatar = avatar;
+                Settings.Instance.environment = environment;
+                Settings.Instance.props = propSettings;
                 // To Do: Avatar, environment settings
 
                 VSAssetManager.Instance.Load(VSAssetManager.AssetType.Avatar, avatar);
 
 
                 VSAssetManager.Instance.Load(VSAssetManager.AssetType.Environment, environment);
-
                 // Spawn props and apply their settings
-                foreach (Prop prop in props)
+                foreach (PropSettings prop in propSettings)
                 {
-                    GameObject loadedObject = VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.name);
-                    Prop propInScene = loadedObject.AddComponent<Prop>();
-                    propInScene.name = prop.name;
+                    GameObject loadedObject = VSAssetManager.Instance.Load(VSAssetManager.AssetType.Prop, prop.propName);
+                    Prop propInScene = loadedObject.GetComponent<Prop>();
+                    propInScene.scale = prop.scale;
                     propInScene.positionOffset = prop.positionOffset;
                     propInScene.rotationOffset = prop.rotationOffset;
-                    propInScene.attachedBone = prop.attachedBone;
+                    propInScene.attachedBone = prop.boneAttachedTo;
                     propInScene.attachedToSomething = prop.attachedToSomething;
+                    propInScene.UpdateProp();
                 }
 
-                Settings.Instance.eyeTracking = retrieved.eyeTracking;
-                Settings.Instance.eyeBlinking = retrieved.eyeBlinking;
-
-                // Not sure if setting tracking by preset is a good idea...
-                /*
-                headTracking = retrieved.headTracking;
-                handTracking = retrieved.handTracking;
-
-                Tracking.TrackingType head = Tracking.TrackingType.None;
-                Tracking.TrackingType hand = Tracking.TrackingType.None;
-
-                if (headTracking == "OpenCV")
-                {
-                    head = Tracking.TrackingType.OpenCV;
-                }
-                else if (headTracking == "SteamVR")
-                {
-                    head = Tracking.TrackingType.SteamVR;
-                }
-                else if (headTracking == "TobiiEyeTracker")
-                {
-                    head = Tracking.TrackingType.TobiiEyeTracker;
-                }
-
-                Tracking.Instance.SetHead(head);
-
-                if (Settings.Instance.headTracker == "SteamVR")
-                {
-                    hand = Tracking.TrackingType.SteamVR;
-                }
-                else if (Settings.Instance.headTracker == "LeapMotion")
-                {
-                    hand = Tracking.TrackingType.LeapMotion;
-                }
-
-                Tracking.Instance.SetHands(hand);*/
                 //TODO: Set things in scene
-                Settings.Instance.headPosition = retrieved.headPosition;
-                Settings.Instance.headRotation = retrieved.headRotation;
-                Settings.Instance.leftHandPosition = retrieved.leftHandPosition;
-                Settings.Instance.leftHandRotation = retrieved.leftHandRotation;
-                Settings.Instance.rightHandPosition = retrieved.rightHandPosition;
-                Settings.Instance.rightHandRotation = retrieved.rightHandRotation;
-                Settings.Instance.ApplySettings();
+                Settings.Instance.headPosition = headPosition;
+                Settings.Instance.headRotation = headRotation;
+                Settings.Instance.leftHandPosition = leftHandPosition;
+                Settings.Instance.leftHandRotation = leftHandRotation;
+                Settings.Instance.rightHandPosition = rightHandPosition;
+                Settings.Instance.rightHandRotation = rightHandRotation;
+                Settings.Instance.SaveSettings();
                 return true;
             }
         }

@@ -43,4 +43,26 @@ public class Prop : MonoBehaviour
             transform.localScale = scale;
         }
     }
+
+    public void ApplyOffsets()
+    {
+        transform.localPosition = positionOffset;
+        transform.localEulerAngles = rotationOffset;
+        transform.localScale = scale;
+    }
+
+    public void AttachToBone()
+    {
+        transform.parent = player.GetComponent<Animator>().GetBoneTransform(attachedBone);
+    }
+
+    public void StartGizmoEdit()
+    {
+        gameObject.layer = 8;
+    }
+
+    public void EndGizmoEdit()
+    {
+        gameObject.layer = 0;
+    }
 }

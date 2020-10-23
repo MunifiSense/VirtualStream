@@ -71,6 +71,8 @@ namespace Valve.VR
                 transform.localPosition = pose.pos;
                 transform.localRotation = pose.rot;
             }
+            transform.position = new Vector3(-transform.position.x, transform.position.y, transform.position.z);
+            transform.rotation = new Quaternion(-transform.rotation.x, transform.rotation.y, -transform.rotation.z, transform.rotation.w);
         }
 
         SteamVR_Events.Action newPosesAction;

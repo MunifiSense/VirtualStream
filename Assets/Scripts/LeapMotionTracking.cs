@@ -20,21 +20,34 @@ public class LeapMotionTracking : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        leftHand.transform.position = leftLeapHand.GetWristPosition();
-        leftHand.transform.rotation = leftLeapHand.GetPalmRotation() * Quaternion.Euler(new Vector3(-90.0f, 0, 0));
-        rightHand.transform.position = rightLeapHand.GetWristPosition();
-        rightHand.transform.rotation = rightLeapHand.GetPalmRotation() * Quaternion.Euler(new Vector3(-90.0f, 0, 0));
-    }
+        if (leftLeapHand.IsTracked)
+        {
+            leftHand.transform.localPosition = new Vector3(-leftLeapHand.GetWristPosition().x,
+            leftLeapHand.GetWristPosition().y + (float)Settings.Instance.handHeight*3,
+            leftLeapHand.GetWristPosition().z);
 
-    void SetPositionOffset(Vector3 offset)
-    {
-        positionOffset = offset;
-        transform.position  = offset;
-    }
+            Quaternion leftHandRotation = leftLeapHand.GetPalmRotation() * Quaternion.Euler(new Vector3(-90.0f, 0, 0));
+            leftHand.transform.localRotation = leftHandRotation;
+        }
+        else
+        {
+            leftHand.transform.position = Tracking.Instance.noneObject.transform.GetChild(0).position;
+            leftHand.transform.rotation = Tracking.Instance.noneObject.transform.GetChild(0).rotation;
+        }
 
-    void SetRotationOffset(Vector3 offset)
-    {
-        rotationOffset = offset;
-        transform.eulerAngles = offset;
+        if (rightLeapHand.IsTracked)
+        {
+            rightHand.transform.localPosition = new Vector3(-rightLeapHand.GetWristPosition().x,
+            rightLeapHand.GetWristPosition().y + (float)Settings.Instance.handHeight*3,
+            rightLeapHand.GetWristPosition().z);
+
+            Quaternion rightHandRotation = rightLeapHand.GetPalmRotation() * Quaternion.Euler(new Vector3(-90.0f, 0, 0));
+            rightHand.transform.localRotation = rightHandRotation;
+        }
+        else
+        {
+            rightHand.transform.position = Tracking.Instance.noneObject.transform.GetChild(1).position;
+            rightHand.transform.rotation = Tracking.Instance.noneObject.transform.GetChild(1).rotation;
+        }
     }
 }
